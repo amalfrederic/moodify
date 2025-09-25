@@ -1,56 +1,71 @@
 /**
  * GET /api/spotify-token
- * Returns a Spotify access token using Client Credentials flow
+ * Returns a Spotify user access token using Authorization Code flow
  */
 export async function GET(req) {
-  const clientId = process.env.SPOTIFY_CLIENT_ID;
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+  const clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID;
+  const redirectUri = process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI;
 
-  if (!clientId || !clientSecret) {
-    console.error("Missing Spotify credentials in environment variables.");
-    return new Response(JSON.stringify({ error: "Missing Spotify credentials" }), { status: 500 });
+  if (!clientId || !redirectUri) {
+    console.error("Missing Spotify client ID or redirect URI in environment variables.");
+    return new Response(JSON.stringify({ error: "Missing Spotify credentials" }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 
-  // Base64 encode the Client ID and Secret for basic authorization
-  const token = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const scopes = [
+    "user-read-private",
+    "user-read-email",
+    "playlist-read-private",
+    "playlist-read-collaborative"
+  ].join(" ");
 
-  // 🟢 CORRECT SPOTIFY TOKEN URL
-  const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
+  const state = Math.random().toString(36).substring(2, 15); // simple random string
+  const authUrl = `https://accounts.spotify.com/authorize?response_type=code&client_id=${clientId}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+
+  console.debug("Spotify authorization URL:", authUrl);
+
+  return new Response(JSON.stringify({ authUrl, state }), { status: 200, headers: { "Content-Type": "application/json" } });
+}
+
+// Callback route to exchange authorization code for user token
+export async function POST(req) {
+  const clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+  const redirectUri = process.env.NEXT;
+
+  const { code } = await req.json();
+  if (!code) {
+    return new Response(JSON.stringify({ error: "Missing authorization code" }), { status: 400, headers: { "Content-Type": "application/json" } });
+  }
+
+  const tokenUrl = "https://accounts.spotify.com/api/token";
+  const bodyParams = new URLSearchParams();
+  bodyParams.append("grant_type", "authorization_code");
+  bodyParams.append("code", code);
+  bodyParams.append("redirect_uri", redirectUri);
+
+  const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
   try {
-    const res = await fetch(SPOTIFY_TOKEN_URL, {
+    const res = await fetch(tokenUrl, {
       method: "POST",
       headers: {
-        "Authorization": `Basic ${token}`,
+        "Authorization": `Basic ${basicAuth}`,
         "Content-Type": "application/x-www-form-urlencoded"
       },
-      body: "grant_type=client_credentials"
+      body: bodyParams.toString()
     });
 
-    // Read the response body once
-    const responseBody = await res.text();
-
+    const tokenData = await res.json();
     if (!res.ok) {
-      // Failure: Log the raw error from Spotify and return status
-      console.error("Spotify Token Error (from Spotify):", res.status, responseBody);
-      
-      let errorDetails = responseBody;
-      try {
-        errorDetails = JSON.parse(responseBody);
-      } catch (e) { /* response was not JSON */ }
-      
-      return new Response(JSON.stringify({ 
-        error: "Failed to get Spotify token", 
-        details: errorDetails 
-      }), { status: res.status });
+      console.error("Spotify token exchange error:", tokenData);
+      return new Response(JSON.stringify({ error: "Failed to exchange code for token", details: tokenData }), { status: res.status, headers: { "Content-Type": "application/json" } });
     }
 
-    // Success: Parse the body as JSON and return
-    const data = JSON.parse(responseBody);
-    return new Response(JSON.stringify(data), { status: 200 });
-    
+    console.debug("Spotify user access token acquired successfully.");
+    return new Response(JSON.stringify(tokenData), { status: 200, headers: { "Content-Type": "application/json" } });
+
   } catch (err) {
-    console.error("Token route critical fetch/parse failure:", err);
-    return new Response(JSON.stringify({ error: "Token route internal error", details: err.message }), { status: 500 });
+    console.error("Spotify token exchange critical error:", err);
+    return new Response(JSON.stringify({ error: "Token exchange failed", details: err.message }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
