@@ -8,17 +8,6 @@ Moodify is a Next.js app that generates Spotify playlists based on your mood usi
 
 ---
 
-## **Live Demo**
-
-Try the app live: [https://moodify.vercel.app](https://moodify.vercel.app)
-
-![Moodify Demo Screenshot](./public/demo-screenshot.png)
-
-> *A preview of Moodify generating playlists based on mood input.*
-
-> ⚠️ Replace `./public/demo-screenshot.png` with an actual screenshot of your deployed app in the `public` folder.
-
----
 
 ## **Getting Started (Local Development)**
 
