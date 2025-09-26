@@ -19,7 +19,7 @@ export async function GET(req) {
 
     const clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID;
     const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-    const redirectUri = "http://127.0.0.1:3000/callback";
+    const redirectUri = "https://moodify.vercel.app/callback";
 
     if (!clientId || !clientSecret) {
         console.error("Missing Spotify credentials in environment variables.");
