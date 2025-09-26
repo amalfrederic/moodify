@@ -30,7 +30,7 @@ export async function GET(req) {
 export async function POST(req) {
   const clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-  const redirectUri = process.env.NEXT;
+  const redirectUri = process.env.NEXT_PUBLIC_SPOTIFY_REDIRECT_URI;
 
   const { code } = await req.json();
   if (!code) {
