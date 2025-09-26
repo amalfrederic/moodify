@@ -7,7 +7,10 @@ Perfect! Here’s an enhanced version of your README with a **demo screenshot an
 Moodify is a Next.js app that generates Spotify playlists based on your mood using Gemini AI. This version has been modified to work seamlessly with Vercel deployment.
 
 ---
+## Test Live
 
+Deployed Link: https://moodify-two-jet.vercel.app
+I have deployed the repository, i have a problem in processing spotify request i will sort it out soon.
 
 ## **Getting Started (Local Development)**
 
